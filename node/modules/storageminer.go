@@ -929,6 +929,8 @@ func ToSealingConfig(cfg *config.StorageMiner) sealiface.Config {
 		MaxWaitDealsSectors:             cfg.Sealing.MaxWaitDealsSectors,
 		MaxSealingSectors:               cfg.Sealing.MaxSealingSectors,
 		MaxSealingSectorsForDeals:       cfg.Sealing.MaxSealingSectorsForDeals,
+		StartEpochSealingBuffer:         abi.ChainEpoch(cfg.Dealmaking.StartEpochSealingBuffer),
+		MakeNewSectorForDeals:           true,
 		CommittedCapacitySectorLifetime: time.Duration(cfg.Sealing.CommittedCapacitySectorLifetime),
 		WaitDealsDelay:                  time.Duration(cfg.Sealing.WaitDealsDelay),
 		AlwaysKeepUnsealedCopy:          cfg.Sealing.AlwaysKeepUnsealedCopy,
@@ -954,8 +956,6 @@ func ToSealingConfig(cfg *config.StorageMiner) sealiface.Config {
 		TerminateBatchMax:  cfg.Sealing.TerminateBatchMax,
 		TerminateBatchMin:  cfg.Sealing.TerminateBatchMin,
 		TerminateBatchWait: time.Duration(cfg.Sealing.TerminateBatchWait),
-
-		StartEpochSealingBuffer: abi.ChainEpoch(cfg.Dealmaking.StartEpochSealingBuffer),
 	}
 }
 
