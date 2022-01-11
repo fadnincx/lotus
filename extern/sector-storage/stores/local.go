@@ -3,6 +3,7 @@ package stores
 import (
 	"context"
 	"encoding/json"
+	ffi "github.com/filecoin-project/filecoin-ffi"
 	"io/ioutil"
 	"math/bits"
 	"math/rand"
@@ -14,6 +15,7 @@ import (
 	"golang.org/x/xerrors"
 
 	"github.com/filecoin-project/go-state-types/abi"
+	"github.com/filecoin-project/specs-actors/actors/runtime/proof"
 	"github.com/filecoin-project/specs-storage/storage"
 
 	"github.com/filecoin-project/lotus/extern/sector-storage/fsutil"
@@ -716,6 +718,34 @@ func (st *Local) FsStat(ctx context.Context, id ID) (fsutil.FsStat, error) {
 	}
 
 	return p.stat(st.localStorage)
+}
+
+func (st *Local) GenerateSingleVanillaProof(ctx context.Context, minerID abi.ActorID, si proof.SectorInfo, ppt abi.RegisteredPoStProof, challenge []uint64) ([]byte, error) {
+	sr := storage.SectorRef{
+		ID: abi.SectorID{
+			Miner:  minerID,
+			Number: si.SectorNumber,
+		},
+		ProofType: si.SealProof,
+	}
+
+	src, _, err := st.AcquireSector(ctx, sr, storiface.FTSealed|storiface.FTCache, storiface.FTNone, storiface.PathStorage, storiface.AcquireMove)
+	if err != nil {
+		return nil, xerrors.Errorf("acquire sector: %w", err)
+	}
+
+	if src.Sealed == "" || src.Cache == "" {
+		return nil, errPathNotFound
+	}
+
+	psi := ffi.PrivateSectorInfo{
+		SectorInfo:       si,
+		CacheDirPath:     src.Cache,
+		PoStProofType:    ppt,
+		SealedSectorPath: src.Sealed,
+	}
+
+	return ffi.GenerateSingleVanillaProof(psi, challenge)
 }
 
 var _ Store = &Local{}

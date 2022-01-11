@@ -7,6 +7,8 @@ import (
 	"github.com/ipfs/go-cid"
 
 	"github.com/filecoin-project/go-state-types/abi"
+	"github.com/filecoin-project/specs-actors/v5/actors/runtime/proof"
+
 	"github.com/filecoin-project/lotus/extern/sector-storage/sealtasks"
 	"github.com/filecoin-project/lotus/extern/sector-storage/stores"
 	"github.com/filecoin-project/lotus/extern/sector-storage/storiface"
@@ -47,6 +49,9 @@ type Worker interface {
 	MoveStorage(ctx context.Context, sector storage.SectorRef, types storiface.SectorFileType) (storiface.CallID, error)                                                                                 //perm:admin
 	UnsealPiece(context.Context, storage.SectorRef, storiface.UnpaddedByteIndex, abi.UnpaddedPieceSize, abi.SealRandomness, cid.Cid) (storiface.CallID, error)                                           //perm:admin
 	Fetch(context.Context, storage.SectorRef, storiface.SectorFileType, storiface.PathType, storiface.AcquireMode) (storiface.CallID, error)                                                             //perm:admin
+
+	GenerateWinningPoSt(ctx context.Context, mid abi.ActorID, sectors []proof.SectorInfo, randomness abi.PoStRandomness, sectorChallenges storiface.FallbackChallenges) ([]proof.PoStProof, error)                                     //perm:admin
+	GenerateWindowPoSt(ctx context.Context, mid abi.ActorID, sectors []proof.SectorInfo, partitionIdx int, offset int, randomness abi.PoStRandomness, postChallenges storiface.FallbackChallenges) (storiface.WindowPoStResult, error) //perm:admin
 
 	TaskDisable(ctx context.Context, tt sealtasks.TaskType) error //perm:admin
 	TaskEnable(ctx context.Context, tt sealtasks.TaskType) error  //perm:admin

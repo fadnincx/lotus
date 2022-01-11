@@ -14,7 +14,10 @@ import (
 	gopath "path"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
+
+	"github.com/filecoin-project/specs-actors/actors/runtime/proof"
 
 	"github.com/filecoin-project/lotus/extern/sector-storage/fsutil"
 	"github.com/filecoin-project/lotus/extern/sector-storage/storiface"
@@ -736,6 +739,81 @@ func (r *Remote) Reserve(ctx context.Context, sid storage.SectorRef, ft storifac
 	return func() {
 
 	}, nil
+}
+
+func (r *Remote) GenerateSingleVanillaProof(ctx context.Context, minerID abi.ActorID, sinfo proof.SectorInfo, ppt abi.RegisteredPoStProof, challenge []uint64) ([]byte, error) {
+	p, err := r.local.GenerateSingleVanillaProof(ctx, minerID, sinfo, ppt, challenge)
+	if err != errPathNotFound {
+		return p, err
+	}
+
+	sid := abi.SectorID{
+		Miner:  minerID,
+		Number: sinfo.SectorNumber,
+	}
+
+	si, err := r.index.StorageFindSector(ctx, sid, storiface.FTSealed|storiface.FTCache, 0, false)
+	if err != nil {
+		return nil, xerrors.Errorf("finding sector %d failed: %w", sid, err)
+	}
+
+	requestParams := SingleVanillaParams{
+		Miner:     minerID,
+		Sector:    sinfo,
+		ProofType: ppt,
+		Challenge: challenge,
+	}
+	jreq, err := json.Marshal(requestParams)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, info := range si {
+		for _, u := range info.URLs {
+			url := fmt.Sprintf("%s/vanilla/single", u)
+
+			req, err := http.NewRequest("POST", url, strings.NewReader(string(jreq)))
+			if err != nil {
+				return nil, xerrors.Errorf("request: %w", err)
+			}
+
+			if r.auth != nil {
+				req.Header = r.auth.Clone()
+			}
+			req = req.WithContext(ctx)
+
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				return nil, xerrors.Errorf("do request: %w", err)
+			}
+
+			if resp.StatusCode != 200 {
+				body, err := ioutil.ReadAll(resp.Body)
+				if err != nil {
+					return nil, xerrors.Errorf("resp.Body ReadAll: %w", err)
+				}
+
+				if err := resp.Body.Close(); err != nil {
+					log.Error("response close: ", err)
+				}
+
+				return nil, xerrors.Errorf("non-200 code: %w", string(body))
+			}
+
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				if err := resp.Body.Close(); err != nil {
+					log.Error("response close: ", err)
+				}
+
+				return nil, xerrors.Errorf("resp.Body ReadAll: %w", err)
+			}
+
+			return body, nil
+		}
+	}
+
+	return nil, xerrors.Errorf("sector not found")
 }
 
 var _ Store = &Remote{}

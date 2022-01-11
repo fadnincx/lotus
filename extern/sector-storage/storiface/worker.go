@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/filecoin-project/specs-actors/actors/runtime/proof"
 	"time"
 
 	"github.com/google/uuid"
@@ -114,6 +115,7 @@ var _ fmt.Stringer = &CallID{}
 var UndefCall CallID
 
 type WorkerCalls interface {
+	// async
 	AddPiece(ctx context.Context, sector storage.SectorRef, pieceSizes []abi.UnpaddedPieceSize, newPieceSize abi.UnpaddedPieceSize, pieceData storage.Data) (CallID, error)
 	SealPreCommit1(ctx context.Context, sector storage.SectorRef, ticket abi.SealRandomness, pieces []abi.PieceInfo) (CallID, error)
 	SealPreCommit2(ctx context.Context, sector storage.SectorRef, pc1o storage.PreCommit1Out) (CallID, error)
@@ -128,6 +130,20 @@ type WorkerCalls interface {
 	MoveStorage(ctx context.Context, sector storage.SectorRef, types SectorFileType) (CallID, error)
 	UnsealPiece(context.Context, storage.SectorRef, UnpaddedByteIndex, abi.UnpaddedPieceSize, abi.SealRandomness, cid.Cid) (CallID, error)
 	Fetch(context.Context, storage.SectorRef, SectorFileType, PathType, AcquireMode) (CallID, error)
+
+	// sync
+	GenerateWinningPoSt(ctx context.Context, mid abi.ActorID, sectors []proof.SectorInfo, randomness abi.PoStRandomness, sectorChallenges FallbackChallenges) ([]proof.PoStProof, error)                           //perm:admin
+	GenerateWindowPoSt(ctx context.Context, mid abi.ActorID, sectors []proof.SectorInfo, partitionIdx int, offset int, randomness abi.PoStRandomness, postChallenges FallbackChallenges) (WindowPoStResult, error) //perm:admin
+}
+
+type WindowPoStResult struct {
+	PoStProofs proof.PoStProof
+	Skipped    []abi.SectorID
+}
+
+type FallbackChallenges struct {
+	Sectors    []abi.SectorNumber
+	Challenges map[abi.SectorNumber][]uint64
 }
 
 type ErrorCode int

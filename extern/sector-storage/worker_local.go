@@ -20,6 +20,7 @@ import (
 	ffi "github.com/filecoin-project/filecoin-ffi"
 	"github.com/filecoin-project/go-state-types/abi"
 	"github.com/filecoin-project/go-statestore"
+	"github.com/filecoin-project/specs-actors/actors/runtime/proof"
 	"github.com/filecoin-project/specs-storage/storage"
 
 	"github.com/filecoin-project/lotus/extern/sector-storage/ffiwrapper"
@@ -506,6 +507,22 @@ func (l *LocalWorker) UnsealPiece(ctx context.Context, sector storage.SectorRef,
 
 		return nil, nil
 	})
+}
+
+func (l *LocalWorker) GenerateWinningPoSt(ctx context.Context, mid abi.ActorID, sectors []proof.SectorInfo, randomness abi.PoStRandomness, sectorChallenges storiface.FallbackChallenges) ([]proof.PoStProof, error) {
+	sb, err := l.executor()
+	if err != nil {
+		return nil, err
+	}
+
+}
+
+func (l *LocalWorker) GenerateWindowPoSt(ctx context.Context, mid abi.ActorID, sectors []proof.SectorInfo, partitionIdx int, offset int, randomness abi.PoStRandomness, postChallenges storiface.FallbackChallenges) (storiface.WindowPoStResult, error) {
+	sb, err := l.executor()
+	if err != nil {
+		return nil, err
+	}
+
 }
 
 func (l *LocalWorker) TaskTypes(context.Context) (map[sealtasks.TaskType]struct{}, error) {

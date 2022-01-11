@@ -30,6 +30,7 @@ import (
 	"github.com/filecoin-project/lotus/journal/alerting"
 	"github.com/filecoin-project/lotus/node/modules/dtypes"
 	"github.com/filecoin-project/lotus/node/repo/imports"
+	"github.com/filecoin-project/specs-actors/v5/actors/runtime/proof"
 	"github.com/filecoin-project/specs-storage/storage"
 	"github.com/google/uuid"
 	"github.com/ipfs/go-cid"
@@ -866,6 +867,10 @@ type WorkerStruct struct {
 		FinalizeSector func(p0 context.Context, p1 storage.SectorRef, p2 []storage.Range) (storiface.CallID, error) `perm:"admin"`
 
 		GenerateSectorKeyFromData func(p0 context.Context, p1 storage.SectorRef, p2 cid.Cid) (storiface.CallID, error) `perm:"admin"`
+
+		GenerateWindowPoSt func(p0 context.Context, p1 abi.ActorID, p2 []proof.SectorInfo, p3 int, p4 int, p5 abi.PoStRandomness, p6 storiface.FallbackChallenges) (storiface.WindowPoStResult, error) `perm:"admin"`
+
+		GenerateWinningPoSt func(p0 context.Context, p1 abi.ActorID, p2 []proof.SectorInfo, p3 abi.PoStRandomness, p4 storiface.FallbackChallenges) ([]proof.PoStProof, error) `perm:"admin"`
 
 		Info func(p0 context.Context) (storiface.WorkerInfo, error) `perm:"admin"`
 
@@ -4973,6 +4978,28 @@ func (s *WorkerStruct) GenerateSectorKeyFromData(p0 context.Context, p1 storage.
 
 func (s *WorkerStub) GenerateSectorKeyFromData(p0 context.Context, p1 storage.SectorRef, p2 cid.Cid) (storiface.CallID, error) {
 	return *new(storiface.CallID), ErrNotSupported
+}
+
+func (s *WorkerStruct) GenerateWindowPoSt(p0 context.Context, p1 abi.ActorID, p2 []proof.SectorInfo, p3 int, p4 int, p5 abi.PoStRandomness, p6 storiface.FallbackChallenges) (storiface.WindowPoStResult, error) {
+	if s.Internal.GenerateWindowPoSt == nil {
+		return *new(storiface.WindowPoStResult), ErrNotSupported
+	}
+	return s.Internal.GenerateWindowPoSt(p0, p1, p2, p3, p4, p5, p6)
+}
+
+func (s *WorkerStub) GenerateWindowPoSt(p0 context.Context, p1 abi.ActorID, p2 []proof.SectorInfo, p3 int, p4 int, p5 abi.PoStRandomness, p6 storiface.FallbackChallenges) (storiface.WindowPoStResult, error) {
+	return *new(storiface.WindowPoStResult), ErrNotSupported
+}
+
+func (s *WorkerStruct) GenerateWinningPoSt(p0 context.Context, p1 abi.ActorID, p2 []proof.SectorInfo, p3 abi.PoStRandomness, p4 storiface.FallbackChallenges) ([]proof.PoStProof, error) {
+	if s.Internal.GenerateWinningPoSt == nil {
+		return *new([]proof.PoStProof), ErrNotSupported
+	}
+	return s.Internal.GenerateWinningPoSt(p0, p1, p2, p3, p4)
+}
+
+func (s *WorkerStub) GenerateWinningPoSt(p0 context.Context, p1 abi.ActorID, p2 []proof.SectorInfo, p3 abi.PoStRandomness, p4 storiface.FallbackChallenges) ([]proof.PoStProof, error) {
+	return *new([]proof.PoStProof), ErrNotSupported
 }
 
 func (s *WorkerStruct) Info(p0 context.Context) (storiface.WorkerInfo, error) {

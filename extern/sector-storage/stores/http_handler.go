@@ -2,6 +2,7 @@ package stores
 
 import (
 	"encoding/json"
+	"github.com/filecoin-project/specs-actors/actors/runtime/proof"
 	"net/http"
 	"os"
 	"strconv"
@@ -52,6 +53,7 @@ func (handler *FetchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	mux := mux.NewRouter()
 
 	mux.HandleFunc("/remote/stat/{id}", handler.remoteStatFs).Methods("GET")
+	mux.HandleFunc("/remote/vanilla/single", handler.generateSingleVanillaProof).Methods("POST")
 	mux.HandleFunc("/remote/{type}/{id}/{spt}/allocated/{offset}/{size}", handler.remoteGetAllocated).Methods("GET")
 	mux.HandleFunc("/remote/{type}/{id}", handler.remoteGetSector).Methods("GET")
 	mux.HandleFunc("/remote/{type}/{id}", handler.remoteDeleteSector).Methods("DELETE")
@@ -284,6 +286,33 @@ func (handler *FetchHandler) remoteGetAllocated(w http.ResponseWriter, r *http.R
 
 	log.Debugf("returning StatusRequestedRangeNotSatisfiable: worker does NOT have unsealed file with unsealed piece, sector:%+v, offset:%d, size:%d", id, offi, szi)
 	w.WriteHeader(http.StatusRequestedRangeNotSatisfiable)
+}
+
+type SingleVanillaParams struct {
+	Miner     abi.ActorID
+	Sector    proof.SectorInfo
+	ProofType abi.RegisteredPoStProof
+	Challenge []uint64
+}
+
+func (handler *FetchHandler) generateSingleVanillaProof(w http.ResponseWriter, r *http.Request) {
+	var params SingleVanillaParams
+	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	vanilla, err := handler.Local.GenerateSingleVanillaProof(r.Context(), params.Miner, params.Sector, params.ProofType, params.Challenge)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	w.WriteHeader(200)
+	_, err = w.Write(vanilla)
+	if err != nil {
+		log.Error("response writer: ", err)
+	}
 }
 
 func ftFromString(t string) (storiface.SectorFileType, error) {
