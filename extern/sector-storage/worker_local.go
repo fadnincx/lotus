@@ -509,20 +509,90 @@ func (l *LocalWorker) UnsealPiece(ctx context.Context, sector storage.SectorRef,
 	})
 }
 
-func (l *LocalWorker) GenerateWinningPoSt(ctx context.Context, mid abi.ActorID, sectors []proof.SectorInfo, randomness abi.PoStRandomness, sectorChallenges storiface.FallbackChallenges) ([]proof.PoStProof, error) {
+func (l *LocalWorker) GenerateWinningPoSt(ctx context.Context, ppt abi.RegisteredPoStProof, mid abi.ActorID, sectors []storiface.PostSectorChallenge, randomness abi.PoStRandomness) ([]proof.PoStProof, error) {
 	sb, err := l.executor()
 	if err != nil {
 		return nil, err
 	}
 
+	// todo throttle config
+	var wg sync.WaitGroup
+	wg.Add(len(sectors))
+
+	vproofs := make([][]byte, len(sectors))
+	var rerr error
+
+	for i, s := range sectors {
+		go func(i int, s storiface.PostSectorChallenge) {
+			defer wg.Done()
+
+			// todo context with tighter deadline (+config)
+			vanilla, err := l.storage.GenerateSingleVanillaProof(ctx, mid, s, ppt)
+			if err != nil {
+				rerr = multierror.Append(rerr, xerrors.Errorf("get winning sector:%d,vanila failed: %w", s.SectorNumber, err))
+				return
+			}
+			if vanilla == nil {
+				rerr = multierror.Append(rerr, xerrors.Errorf("get winning sector:%d,vanila is nil", s.SectorNumber))
+			}
+			vproofs[i] = vanilla
+		}(i, s)
+	}
+	wg.Wait()
+
+	if rerr != nil {
+		return nil, rerr
+	}
+
+	return sb.GenerateWinningPoStWithVanilla(ctx, ppt, mid, randomness, vproofs)
 }
 
-func (l *LocalWorker) GenerateWindowPoSt(ctx context.Context, mid abi.ActorID, sectors []proof.SectorInfo, partitionIdx int, offset int, randomness abi.PoStRandomness, postChallenges storiface.FallbackChallenges) (storiface.WindowPoStResult, error) {
+func (l *LocalWorker) GenerateWindowPoSt(ctx context.Context, ppt abi.RegisteredPoStProof, mid abi.ActorID, sectors []storiface.PostSectorChallenge, partitionIdx int, randomness abi.PoStRandomness) (storiface.WindowPoStResult, error) {
 	sb, err := l.executor()
 	if err != nil {
-		return nil, err
+		return storiface.WindowPoStResult{}, err
 	}
 
+	var slk sync.Mutex
+	var skipped []abi.SectorID
+
+	// todo throttle config
+	var wg sync.WaitGroup
+	wg.Add(len(sectors))
+
+	vproofs := make([][]byte, len(sectors))
+
+	for i, s := range sectors {
+		go func(i int, s storiface.PostSectorChallenge) {
+			defer wg.Done()
+
+			// todo context with tighter deadline (+config)
+			vanilla, err := l.storage.GenerateSingleVanillaProof(ctx, mid, s, ppt)
+			if err != nil || vanilla == nil {
+				slk.Lock()
+				skipped = append(skipped, abi.SectorID{
+					Miner:  mid,
+					Number: s.SectorNumber,
+				})
+				slk.Unlock()
+				log.Errorf("get sector: %d, vanilla: %s, offset: %d", s.SectorNumber, vanilla)
+				return
+			}
+			vproofs[i] = vanilla
+		}(i, s)
+	}
+	wg.Wait()
+
+	if len(skipped) > 0 {
+		panic("todo") // big TODO
+	}
+
+	res, err := sb.GenerateWindowPoStWithVanilla(ctx, ppt, mid, randomness, vproofs, partitionIdx)
+
+	return storiface.WindowPoStResult{
+		PoStProofs: res,
+		Skipped:    skipped,
+	}, err
 }
 
 func (l *LocalWorker) TaskTypes(context.Context) (map[sealtasks.TaskType]struct{}, error) {

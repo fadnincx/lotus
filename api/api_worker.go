@@ -50,8 +50,8 @@ type Worker interface {
 	UnsealPiece(context.Context, storage.SectorRef, storiface.UnpaddedByteIndex, abi.UnpaddedPieceSize, abi.SealRandomness, cid.Cid) (storiface.CallID, error)                                           //perm:admin
 	Fetch(context.Context, storage.SectorRef, storiface.SectorFileType, storiface.PathType, storiface.AcquireMode) (storiface.CallID, error)                                                             //perm:admin
 
-	GenerateWinningPoSt(ctx context.Context, mid abi.ActorID, sectors []proof.SectorInfo, randomness abi.PoStRandomness, sectorChallenges storiface.FallbackChallenges) ([]proof.PoStProof, error)                                     //perm:admin
-	GenerateWindowPoSt(ctx context.Context, mid abi.ActorID, sectors []proof.SectorInfo, partitionIdx int, offset int, randomness abi.PoStRandomness, postChallenges storiface.FallbackChallenges) (storiface.WindowPoStResult, error) //perm:admin
+	GenerateWinningPoSt(ctx context.Context, ppt abi.RegisteredPoStProof, mid abi.ActorID, sectors []storiface.PostSectorChallenge, randomness abi.PoStRandomness) ([]proof.PoStProof, error)                           //perm:admin
+	GenerateWindowPoSt(ctx context.Context, ppt abi.RegisteredPoStProof, mid abi.ActorID, sectors []storiface.PostSectorChallenge, partitionIdx int, randomness abi.PoStRandomness) (storiface.WindowPoStResult, error) //perm:admin
 
 	TaskDisable(ctx context.Context, tt sealtasks.TaskType) error //perm:admin
 	TaskEnable(ctx context.Context, tt sealtasks.TaskType) error  //perm:admin

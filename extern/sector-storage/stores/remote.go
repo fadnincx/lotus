@@ -17,8 +17,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/filecoin-project/specs-actors/actors/runtime/proof"
-
 	"github.com/filecoin-project/lotus/extern/sector-storage/fsutil"
 	"github.com/filecoin-project/lotus/extern/sector-storage/storiface"
 	"github.com/filecoin-project/lotus/extern/sector-storage/tarutil"
@@ -741,8 +739,8 @@ func (r *Remote) Reserve(ctx context.Context, sid storage.SectorRef, ft storifac
 	}, nil
 }
 
-func (r *Remote) GenerateSingleVanillaProof(ctx context.Context, minerID abi.ActorID, sinfo proof.SectorInfo, ppt abi.RegisteredPoStProof, challenge []uint64) ([]byte, error) {
-	p, err := r.local.GenerateSingleVanillaProof(ctx, minerID, sinfo, ppt, challenge)
+func (r *Remote) GenerateSingleVanillaProof(ctx context.Context, minerID abi.ActorID, sinfo storiface.PostSectorChallenge, ppt abi.RegisteredPoStProof) ([]byte, error) {
+	p, err := r.local.GenerateSingleVanillaProof(ctx, minerID, sinfo, ppt)
 	if err != errPathNotFound {
 		return p, err
 	}
@@ -761,7 +759,6 @@ func (r *Remote) GenerateSingleVanillaProof(ctx context.Context, minerID abi.Act
 		Miner:     minerID,
 		Sector:    sinfo,
 		ProofType: ppt,
-		Challenge: challenge,
 	}
 	jreq, err := json.Marshal(requestParams)
 	if err != nil {

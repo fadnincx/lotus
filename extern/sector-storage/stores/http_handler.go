@@ -2,7 +2,6 @@ package stores
 
 import (
 	"encoding/json"
-	"github.com/filecoin-project/specs-actors/actors/runtime/proof"
 	"net/http"
 	"os"
 	"strconv"
@@ -290,9 +289,8 @@ func (handler *FetchHandler) remoteGetAllocated(w http.ResponseWriter, r *http.R
 
 type SingleVanillaParams struct {
 	Miner     abi.ActorID
-	Sector    proof.SectorInfo
+	Sector    storiface.PostSectorChallenge
 	ProofType abi.RegisteredPoStProof
-	Challenge []uint64
 }
 
 func (handler *FetchHandler) generateSingleVanillaProof(w http.ResponseWriter, r *http.Request) {
@@ -302,7 +300,7 @@ func (handler *FetchHandler) generateSingleVanillaProof(w http.ResponseWriter, r
 		return
 	}
 
-	vanilla, err := handler.Local.GenerateSingleVanillaProof(r.Context(), params.Miner, params.Sector, params.ProofType, params.Challenge)
+	vanilla, err := handler.Local.GenerateSingleVanillaProof(r.Context(), params.Miner, params.Sector, params.ProofType)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return

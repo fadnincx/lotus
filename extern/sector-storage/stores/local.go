@@ -720,7 +720,7 @@ func (st *Local) FsStat(ctx context.Context, id ID) (fsutil.FsStat, error) {
 	return p.stat(st.localStorage)
 }
 
-func (st *Local) GenerateSingleVanillaProof(ctx context.Context, minerID abi.ActorID, si proof.SectorInfo, ppt abi.RegisteredPoStProof, challenge []uint64) ([]byte, error) {
+func (st *Local) GenerateSingleVanillaProof(ctx context.Context, minerID abi.ActorID, si storiface.PostSectorChallenge, ppt abi.RegisteredPoStProof) ([]byte, error) {
 	sr := storage.SectorRef{
 		ID: abi.SectorID{
 			Miner:  minerID,
@@ -739,13 +739,17 @@ func (st *Local) GenerateSingleVanillaProof(ctx context.Context, minerID abi.Act
 	}
 
 	psi := ffi.PrivateSectorInfo{
-		SectorInfo:       si,
+		SectorInfo: proof.SectorInfo{
+			SealProof:    si.SealProof,
+			SectorNumber: si.SectorNumber,
+			SealedCID:    si.SealedCID,
+		},
 		CacheDirPath:     src.Cache,
 		PoStProofType:    ppt,
 		SealedSectorPath: src.Sealed,
 	}
 
-	return ffi.GenerateSingleVanillaProof(psi, challenge)
+	return ffi.GenerateSingleVanillaProof(psi, si.Challenge)
 }
 
 var _ Store = &Local{}

@@ -132,13 +132,20 @@ type WorkerCalls interface {
 	Fetch(context.Context, storage.SectorRef, SectorFileType, PathType, AcquireMode) (CallID, error)
 
 	// sync
-	GenerateWinningPoSt(ctx context.Context, mid abi.ActorID, sectors []proof.SectorInfo, randomness abi.PoStRandomness, sectorChallenges FallbackChallenges) ([]proof.PoStProof, error)                           //perm:admin
-	GenerateWindowPoSt(ctx context.Context, mid abi.ActorID, sectors []proof.SectorInfo, partitionIdx int, offset int, randomness abi.PoStRandomness, postChallenges FallbackChallenges) (WindowPoStResult, error) //perm:admin
+	GenerateWinningPoSt(ctx context.Context, ppt abi.RegisteredPoStProof, mid abi.ActorID, sectors []PostSectorChallenge, randomness abi.PoStRandomness) ([]proof.PoStProof, error)
+	GenerateWindowPoSt(ctx context.Context, ppt abi.RegisteredPoStProof, mid abi.ActorID, sectors []PostSectorChallenge, partitionIdx int, randomness abi.PoStRandomness) (WindowPoStResult, error)
 }
 
 type WindowPoStResult struct {
 	PoStProofs proof.PoStProof
 	Skipped    []abi.SectorID
+}
+
+type PostSectorChallenge struct {
+	SealProof    abi.RegisteredSealProof
+	SectorNumber abi.SectorNumber
+	SealedCID    cid.Cid
+	Challenge    []uint64
 }
 
 type FallbackChallenges struct {
