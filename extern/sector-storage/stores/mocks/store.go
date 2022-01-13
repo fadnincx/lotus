@@ -70,6 +70,21 @@ func (mr *MockStoreMockRecorder) FsStat(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FsStat", reflect.TypeOf((*MockStore)(nil).FsStat), arg0, arg1)
 }
 
+// GenerateSingleVanillaProof mocks base method.
+func (m *MockStore) GenerateSingleVanillaProof(arg0 context.Context, arg1 abi.ActorID, arg2 storiface.PostSectorChallenge, arg3 abi.RegisteredPoStProof) ([]byte, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GenerateSingleVanillaProof", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].([]byte)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GenerateSingleVanillaProof indicates an expected call of GenerateSingleVanillaProof.
+func (mr *MockStoreMockRecorder) GenerateSingleVanillaProof(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateSingleVanillaProof", reflect.TypeOf((*MockStore)(nil).GenerateSingleVanillaProof), arg0, arg1, arg2, arg3)
+}
+
 // MoveStorage mocks base method.
 func (m *MockStore) MoveStorage(arg0 context.Context, arg1 storage.SectorRef, arg2 storiface.SectorFileType) error {
 	m.ctrl.T.Helper()
