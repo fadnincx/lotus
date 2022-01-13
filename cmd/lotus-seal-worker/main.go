@@ -262,7 +262,19 @@ var runCmd = &cli.Command{
 
 		var taskTypes []sealtasks.TaskType
 
-		taskTypes = append(taskTypes, sealtasks.TTFetch, sealtasks.TTCommit1, sealtasks.TTFinalize)
+		exclusiveSet := false
+		if cctx.Bool("windowpost") {
+			exclusiveSet = true
+			taskTypes = append(taskTypes, sealtasks.TTGenerateWindowPoSt)
+		}
+		if cctx.Bool("winningpost") {
+			exclusiveSet = true
+			taskTypes = append(taskTypes, sealtasks.TTGenerateWinningPoSt)
+		}
+
+		if !exclusiveSet {
+			taskTypes = append(taskTypes, sealtasks.TTFetch, sealtasks.TTCommit1, sealtasks.TTFinalize)
+		}
 
 		if cctx.Bool("addpiece") {
 			taskTypes = append(taskTypes, sealtasks.TTAddPiece)
@@ -279,15 +291,12 @@ var runCmd = &cli.Command{
 		if cctx.Bool("commit") {
 			taskTypes = append(taskTypes, sealtasks.TTCommit2)
 		}
-		if cctx.Bool("windowpost") {
-			taskTypes = append(taskTypes, sealtasks.TTGenerateWindowPoSt)
-		}
-		if cctx.Bool("winningpost") {
-			taskTypes = append(taskTypes, sealtasks.TTGenerateWinningPoSt)
-		}
 
 		if len(taskTypes) == 0 {
 			return xerrors.Errorf("no task types specified")
+		}
+		if exclusiveSet && len(taskTypes) != 1 {
+			return xerrors.Errorf("PoSt workers only support a single task type; have %v", taskTypes)
 		}
 
 		// Open repo
