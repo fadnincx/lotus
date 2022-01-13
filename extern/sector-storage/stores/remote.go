@@ -766,7 +766,7 @@ func (r *Remote) GenerateSingleVanillaProof(ctx context.Context, minerID abi.Act
 	}
 
 	for _, info := range si {
-		for _, u := range info.URLs {
+		for _, u := range info.BaseURLs {
 			url := fmt.Sprintf("%s/vanilla/single", u)
 
 			req, err := http.NewRequest("POST", url, strings.NewReader(string(jreq)))
@@ -794,7 +794,7 @@ func (r *Remote) GenerateSingleVanillaProof(ctx context.Context, minerID abi.Act
 					log.Error("response close: ", err)
 				}
 
-				return nil, xerrors.Errorf("non-200 code: %w", string(body))
+				return nil, xerrors.Errorf("non-200 code from %s: '%s'", url, string(body))
 			}
 
 			body, err := ioutil.ReadAll(resp.Body)

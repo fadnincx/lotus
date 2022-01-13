@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/gorilla/mux"
 	"github.com/ipfs/go-datastore/namespace"
 	logging "github.com/ipfs/go-log/v2"
 	manet "github.com/multiformats/go-multiaddr/net"
@@ -22,7 +21,6 @@ import (
 	"go.opencensus.io/tag"
 	"golang.org/x/xerrors"
 
-	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	paramfetch "github.com/filecoin-project/go-paramfetch"
 	"github.com/filecoin-project/go-statestore"
@@ -31,13 +29,12 @@ import (
 	"github.com/filecoin-project/lotus/build"
 	lcli "github.com/filecoin-project/lotus/cli"
 	cliutil "github.com/filecoin-project/lotus/cli/util"
+	"github.com/filecoin-project/lotus/cmd/lotus-seal-worker/sealworker"
 	sectorstorage "github.com/filecoin-project/lotus/extern/sector-storage"
 	"github.com/filecoin-project/lotus/extern/sector-storage/sealtasks"
 	"github.com/filecoin-project/lotus/extern/sector-storage/stores"
 	"github.com/filecoin-project/lotus/lib/lotuslog"
-	"github.com/filecoin-project/lotus/lib/rpcenc"
 	"github.com/filecoin-project/lotus/metrics"
-	"github.com/filecoin-project/lotus/metrics/proxy"
 	"github.com/filecoin-project/lotus/node/modules"
 	"github.com/filecoin-project/lotus/node/repo"
 )
@@ -422,35 +419,19 @@ var runCmd = &cli.Command{
 
 		wsts := statestore.New(namespace.Wrap(ds, modules.WorkerCallsPrefix))
 
-		workerApi := &worker{
+		workerApi := &sealworker.Worker{
 			LocalWorker: sectorstorage.NewLocalWorker(sectorstorage.WorkerConfig{
 				TaskTypes: taskTypes,
 				NoSwap:    cctx.Bool("no-swap"),
 			}, remote, localStore, nodeApi, nodeApi, wsts),
-			localStore: localStore,
-			ls:         lr,
+			LocalStore: localStore,
+			Storage:    lr,
 		}
-
-		mux := mux.NewRouter()
 
 		log.Info("Setting up control endpoint at " + address)
 
-		readerHandler, readerServerOpt := rpcenc.ReaderParamDecoder()
-		rpcServer := jsonrpc.NewServer(readerServerOpt)
-		rpcServer.Register("Filecoin", api.PermissionedWorkerAPI(proxy.MetricedWorkerAPI(workerApi)))
-
-		mux.Handle("/rpc/v0", rpcServer)
-		mux.Handle("/rpc/streams/v0/push/{uuid}", readerHandler)
-		mux.PathPrefix("/remote").HandlerFunc(remoteHandler)
-		mux.PathPrefix("/").Handler(http.DefaultServeMux) // pprof
-
-		ah := &auth.Handler{
-			Verify: nodeApi.AuthVerify,
-			Next:   mux.ServeHTTP,
-		}
-
 		srv := &http.Server{
-			Handler: ah,
+			Handler: sealworker.WorkerHandler(nodeApi.AuthVerify, remoteHandler, workerApi, true),
 			BaseContext: func(listener net.Listener) context.Context {
 				ctx, _ := tag.New(context.Background(), tag.Upsert(metrics.APIInterface, "lotus-worker"))
 				return ctx

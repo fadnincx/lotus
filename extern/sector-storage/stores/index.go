@@ -50,9 +50,10 @@ type HealthReport struct {
 }
 
 type SectorStorageInfo struct {
-	ID     ID
-	URLs   []string // TODO: Support non-http transports
-	Weight uint64
+	ID       ID
+	URLs     []string // TODO: Support non-http transports
+	BaseURLs []string
+	Weight   uint64
 
 	CanSeal  bool
 	CanStore bool
@@ -322,7 +323,7 @@ func (i *Index) StorageFindSector(ctx context.Context, s abi.SectorID, ft storif
 			continue
 		}
 
-		urls := make([]string, len(st.info.URLs))
+		urls, burls := make([]string, len(st.info.URLs)), make([]string, len(st.info.URLs))
 		for k, u := range st.info.URLs {
 			rl, err := url.Parse(u)
 			if err != nil {
@@ -331,6 +332,7 @@ func (i *Index) StorageFindSector(ctx context.Context, s abi.SectorID, ft storif
 
 			rl.Path = gopath.Join(rl.Path, ft.String(), storiface.SectorName(s))
 			urls[k] = rl.String()
+			burls[k] = u
 		}
 
 		if allowTo != nil && len(st.info.AllowTo) > 0 {
@@ -342,9 +344,10 @@ func (i *Index) StorageFindSector(ctx context.Context, s abi.SectorID, ft storif
 		}
 
 		out = append(out, SectorStorageInfo{
-			ID:     id,
-			URLs:   urls,
-			Weight: st.info.Weight * n, // storage with more sector types is better
+			ID:       id,
+			URLs:     urls,
+			BaseURLs: burls,
+			Weight:   st.info.Weight * n, // storage with more sector types is better
 
 			CanSeal:  st.info.CanSeal,
 			CanStore: st.info.CanStore,
@@ -399,7 +402,7 @@ func (i *Index) StorageFindSector(ctx context.Context, s abi.SectorID, ft storif
 				}
 			}
 
-			urls := make([]string, len(st.info.URLs))
+			urls, burls := make([]string, len(st.info.URLs)), make([]string, len(st.info.URLs))
 			for k, u := range st.info.URLs {
 				rl, err := url.Parse(u)
 				if err != nil {
@@ -408,12 +411,14 @@ func (i *Index) StorageFindSector(ctx context.Context, s abi.SectorID, ft storif
 
 				rl.Path = gopath.Join(rl.Path, ft.String(), storiface.SectorName(s))
 				urls[k] = rl.String()
+				burls[k] = u
 			}
 
 			out = append(out, SectorStorageInfo{
-				ID:     id,
-				URLs:   urls,
-				Weight: st.info.Weight * 0, // TODO: something better than just '0'
+				ID:       id,
+				URLs:     urls,
+				BaseURLs: burls,
+				Weight:   st.info.Weight * 0, // TODO: something better than just '0'
 
 				CanSeal:  st.info.CanSeal,
 				CanStore: st.info.CanStore,

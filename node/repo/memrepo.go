@@ -113,6 +113,8 @@ func (lmem *lockedMemRepo) Path() string {
 		if err := os.MkdirAll(filepath.Join(t, "deal-staging"), 0755); err != nil {
 			panic(err)
 		}
+	}
+	if lmem.t == StorageMiner || lmem.t == Worker {
 		if err := config.WriteStorageFile(filepath.Join(t, fsStorageConfig), stores.StorageConfig{
 			StoragePaths: []stores.LocalPath{
 				{Path: t},
