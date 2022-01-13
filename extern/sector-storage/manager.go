@@ -64,7 +64,7 @@ type Manager struct {
 	windowPoStSched  *poStScheduler
 	winningPoStSched *poStScheduler
 
-	storage.Prover
+	localProver storage.Prover
 
 	workLk sync.Mutex
 	work   *statestore.StateStore
@@ -76,6 +76,8 @@ type Manager struct {
 	results map[WorkID]result
 	waitRes map[WorkID]chan struct{}
 }
+
+var _ storage.Prover = &Manager{}
 
 type result struct {
 	r   interface{}
@@ -134,7 +136,7 @@ func New(ctx context.Context, lstor *stores.Local, stor *stores.Remote, ls store
 		windowPoStSched:  newPoStScheduler(sealtasks.TTGenerateWindowPoSt),
 		winningPoStSched: newPoStScheduler(sealtasks.TTGenerateWinningPoSt),
 
-		Prover: prover,
+		localProver: prover,
 
 		work:       mss,
 		callToWork: map[storiface.CallID]WorkID{},
