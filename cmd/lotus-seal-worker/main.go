@@ -163,6 +163,17 @@ var runCmd = &cli.Command{
 			Usage: "enable commit (32G sectors: all cores or GPUs, 128GiB Memory + 64GiB swap)",
 			Value: true,
 		},
+		&cli.BoolFlag{
+			Name:  "windowpost",
+			Usage: "enable window post",
+			Value: false,
+		},
+
+		&cli.BoolFlag{
+			Name:  "winningpost",
+			Usage: "enable winning post",
+			Value: false,
+		},
 		&cli.IntFlag{
 			Name:  "parallel-fetch-limit",
 			Usage: "maximum fetch operations to run in parallel",
@@ -267,6 +278,12 @@ var runCmd = &cli.Command{
 		}
 		if cctx.Bool("commit") {
 			taskTypes = append(taskTypes, sealtasks.TTCommit2)
+		}
+		if cctx.Bool("windowpost") {
+			taskTypes = append(taskTypes, sealtasks.TTGenerateWindowPoSt)
+		}
+		if cctx.Bool("winningpost") {
+			taskTypes = append(taskTypes, sealtasks.TTGenerateWinningPoSt)
 		}
 
 		if len(taskTypes) == 0 {

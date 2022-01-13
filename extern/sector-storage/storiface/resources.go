@@ -62,6 +62,8 @@ func (r Resources) Threads(wcpus uint64, gpus int) uint64 {
 	return uint64(mp)
 }
 
+var GPUUtilizationProof float64 = 1.0 // todo use resource tablo
+
 var ResourceTable = map[sealtasks.TaskType]map[abi.RegisteredSealProof]Resources{
 	sealtasks.TTAddPiece: {
 		abi.RegisteredSealProof_StackedDrg64GiBV1: Resources{

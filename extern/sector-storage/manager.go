@@ -60,7 +60,9 @@ type Manager struct {
 	remoteHnd  *stores.FetchHandler
 	index      stores.SectorIndex
 
-	sched *scheduler
+	sched            *scheduler
+	windowPoStSched  *poStScheduler
+	winningPoStSched *poStScheduler
 
 	storage.Prover
 
@@ -128,7 +130,9 @@ func New(ctx context.Context, lstor *stores.Local, stor *stores.Remote, ls store
 		remoteHnd:  &stores.FetchHandler{Local: lstor, PfHandler: &stores.DefaultPartialFileHandler{}},
 		index:      si,
 
-		sched: newScheduler(),
+		sched:            newScheduler(),
+		windowPoStSched:  newPoStScheduler(sealtasks.TTGenerateWindowPoSt),
+		winningPoStSched: newPoStScheduler(sealtasks.TTGenerateWinningPoSt),
 
 		Prover: prover,
 
@@ -194,7 +198,32 @@ func (m *Manager) AddLocalStorage(ctx context.Context, path string) error {
 }
 
 func (m *Manager) AddWorker(ctx context.Context, w Worker) error {
-	return m.sched.runWorker(ctx, w)
+	sessID, err := w.Session(ctx)
+	if err != nil {
+		return xerrors.Errorf("getting worker session: %w", err)
+	}
+	if sessID == ClosedWorkerID {
+		return xerrors.Errorf("worker already closed")
+	}
+
+	wid := storiface.WorkerID(sessID)
+
+	whnd, err := newWorkerHandle(ctx, w)
+	if err != nil {
+		return err
+	}
+
+	tasks, err := w.TaskTypes(ctx)
+	if err != nil {
+		return xerrors.Errorf("getting worker tasks: %w", err)
+	}
+
+	if m.windowPoStSched.MaybeAddWorker(wid, tasks, whnd) ||
+		m.winningPoStSched.MaybeAddWorker(wid, tasks, whnd) {
+		return nil
+	}
+
+	return m.sched.runWorker(ctx, wid, whnd)
 }
 
 func (m *Manager) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -940,6 +969,8 @@ func (m *Manager) SchedDiag(ctx context.Context, doSched bool) (interface{}, err
 }
 
 func (m *Manager) Close(ctx context.Context) error {
+	m.windowPoStSched.schedClose()
+	m.winningPoStSched.schedClose()
 	return m.sched.Close(ctx)
 }
 
