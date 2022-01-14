@@ -169,6 +169,8 @@ var sendCmd = &cli.Command{
 			return err
 		}
 
+		fmt.Fprintf(cctx.App.Writer, "%s\n", sm.Cid())
+
 		if cctx.IsSet("wait") {
 
 			// Copied from `StateWaitMsgCmd` in `state.go:1457`
@@ -185,10 +187,9 @@ var sendCmd = &cli.Command{
 			var endTime = time.Now().UnixMicro() // UnixMilli(), UnixMicro(), UnixNano()
 
 			fmt.Fprintf(cctx.App.Writer, "%d\n", endTime-startTime)
-			return nil
+
 		}
 
-		fmt.Fprintf(cctx.App.Writer, "%s\n", sm.Cid())
 		return nil
 	},
 }
