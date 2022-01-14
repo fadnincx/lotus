@@ -3,9 +3,10 @@ package cli
 import (
 	"encoding/hex"
 	"fmt"
-
+	"github.com/filecoin-project/lotus/build"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/xerrors"
+	"time"
 
 	"github.com/filecoin-project/go-address"
 	"github.com/filecoin-project/go-state-types/abi"
@@ -60,6 +61,10 @@ var sendCmd = &cli.Command{
 			Name:  "force",
 			Usage: "Deprecated: use global 'force-send'",
 		},
+		&cli.BoolFlag{
+			Name:  "wait",
+			Usage: "Waits until transaction is committed",
+		},
 	},
 	Action: func(cctx *cli.Context) error {
 		if cctx.IsSet("force") {
@@ -71,10 +76,17 @@ var sendCmd = &cli.Command{
 		}
 
 		srv, err := GetFullNodeServices(cctx)
+		api, closer, errApi := GetFullNodeAPI(cctx)
+
 		if err != nil {
 			return err
 		}
 		defer srv.Close() //nolint:errcheck
+
+		if errApi != nil {
+			return err
+		}
+		defer closer() //nolint:errcheck
 
 		ctx := ReqContext(cctx)
 		var params SendParams
@@ -145,6 +157,8 @@ var sendCmd = &cli.Command{
 			params.Nonce = &n
 		}
 
+		var startTime = time.Now().UnixMicro() // UnixMilli(), UnixMicro(), UnixNano()
+
 		proto, err := srv.MessageForSend(ctx, params)
 		if err != nil {
 			return xerrors.Errorf("creating message prototype: %w", err)
@@ -153,6 +167,25 @@ var sendCmd = &cli.Command{
 		sm, err := InteractiveSend(ctx, cctx, srv, proto)
 		if err != nil {
 			return err
+		}
+
+		if cctx.IsSet("wait") {
+
+			// Copied from `StateWaitMsgCmd` in `state.go:1457`
+			_, err := api.StateWaitMsg(ctx, sm.Cid(), build.MessageConfidence)
+			if err != nil {
+				return err
+			}
+
+			_, err = api.ChainGetMessage(ctx, sm.Cid())
+			if err != nil {
+				return err
+			}
+
+			var endTime = time.Now().UnixMicro() // UnixMilli(), UnixMicro(), UnixNano()
+
+			fmt.Fprintf(cctx.App.Writer, "%d\n", endTime-startTime)
+			return nil
 		}
 
 		fmt.Fprintf(cctx.App.Writer, "%s\n", sm.Cid())
