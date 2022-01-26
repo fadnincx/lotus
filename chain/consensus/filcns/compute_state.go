@@ -2,7 +2,9 @@ package filcns
 
 import (
 	"context"
+	"github.com/filecoin-project/lotus/chain"
 	"sync/atomic"
+	"time"
 
 	"github.com/filecoin-project/lotus/chain/rand"
 
@@ -91,6 +93,8 @@ func (t *TipSetExecutor) ApplyBlocks(ctx context.Context, sm *stmgr.StateManager
 	defer func() {
 		partDone()
 	}()
+
+	cids := make([]string, 2)
 
 	makeVmWithBaseState := func(base cid.Cid) (*vm.VM, error) {
 		vmopt := &vm.VMOpts{
@@ -241,6 +245,7 @@ func (t *TipSetExecutor) ApplyBlocks(ctx context.Context, sm *stmgr.StateManager
 		if ret.ExitCode != 0 {
 			return cid.Undef, cid.Undef, xerrors.Errorf("reward application message failed (exit %d): %s", ret.ExitCode, ret.ActorErr)
 		}
+		cids = append(cids, rwMsg.Cid().String())
 	}
 
 	partDone()
@@ -271,6 +276,11 @@ func (t *TipSetExecutor) ApplyBlocks(ctx context.Context, sm *stmgr.StateManager
 
 	stats.Record(ctx, metrics.VMSends.M(int64(atomic.LoadUint64(&vm.StatSends))),
 		metrics.VMApplied.M(int64(atomic.LoadUint64(&vm.StatApplied))))
+
+	appliedTime := time.Now().UnixMicro()
+	for i := range cids {
+		go chain.RedisSaveEndTime(cids[i], appliedTime)
+	}
 
 	return st, rectroot, nil
 }

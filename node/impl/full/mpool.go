@@ -3,6 +3,8 @@ package full
 import (
 	"context"
 	"encoding/json"
+	"github.com/filecoin-project/lotus/chain"
+	"time"
 
 	"github.com/filecoin-project/go-address"
 	"github.com/ipfs/go-cid"
@@ -136,6 +138,9 @@ func (a *MpoolAPI) MpoolPushUntrusted(ctx context.Context, smsg *types.SignedMes
 }
 
 func (a *MpoolAPI) MpoolPushMessage(ctx context.Context, msg *types.Message, spec *api.MessageSendSpec) (*types.SignedMessage, error) {
+
+	starttime := time.Now().UnixMicro()
+
 	cp := *msg
 	msg = &cp
 	inMsg := *msg
@@ -180,6 +185,8 @@ func (a *MpoolAPI) MpoolPushMessage(ctx context.Context, msg *types.Message, spe
 	if b.LessThan(msg.Value) {
 		return nil, xerrors.Errorf("mpool push: not enough funds: %s < %s", b, msg.Value)
 	}
+
+	go chain.RedisSaveStartTime(msg.Cid().String(), starttime)
 
 	// Sign and push the message
 	return a.MessageSigner.SignMessage(ctx, msg, func(smsg *types.SignedMessage) error {
