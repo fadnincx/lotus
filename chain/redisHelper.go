@@ -62,11 +62,11 @@ func (rh *RedisHelper) RedisSaveStartTime(cid string, starttime int64) {
 	hostname, _ := os.Hostname()
 	json, err := json2.Marshal(TimeLogEntry{Client: hostname, Cid: cid, Start: starttime})
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("RedisSaveStarttime.json.Marshal: %v\n", err)
 	}
 	err = rh.redisClient.Set(cid+"-"+hostname, json, 0).Err()
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("RedisSaveStarttime.redisClient.set: %v\n", err)
 	}
 }
 func (rh *RedisHelper) RedisSaveEndTime(cid string, endtime int64) {
@@ -78,21 +78,21 @@ func (rh *RedisHelper) RedisSaveEndTime(cid string, endtime int64) {
 
 	val, err := rh.redisClient.Get(cid + "-" + hostname).Result()
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("RedisSaveEndTime.redisClient.get: %v\n", err)
 	}
 	var stored TimeLogEntry
 	err = json2.Unmarshal([]byte(val), &stored)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("RedisSaveEndTime.json.Unmarshal %v gives %v\n", val, err)
 	}
 
 	json, err := json2.Marshal(TimeLogEntry{Client: hostname, Cid: cid, Start: stored.Start, End: endtime})
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("RedisSaveEndTime.json.Marshal %v\n", err)
 	}
 	err = rh.redisClient.Set(cid+"-"+hostname, json, 0).Err()
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("RedisSaveEndTime.redisClient.set: %v\n", err)
 	}
 
 }
