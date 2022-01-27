@@ -186,7 +186,7 @@ func (a *MpoolAPI) MpoolPushMessage(ctx context.Context, msg *types.Message, spe
 		return nil, xerrors.Errorf("mpool push: not enough funds: %s < %s", b, msg.Value)
 	}
 
-	go chain.RedisSaveStartTime(msg.Cid().String(), starttime)
+	go chain.GetRedisHelper().RedisSaveStartTime(msg.Cid().String(), starttime)
 
 	// Sign and push the message
 	return a.MessageSigner.SignMessage(ctx, msg, func(smsg *types.SignedMessage) error {

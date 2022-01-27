@@ -15,34 +15,48 @@ type TimeLogEntry struct {
 	End    int64  `json:"end"`
 }
 
-var redisClient *redis.Client = nil
-var redisDo = true
-var redisMutex sync.Mutex
+var rhelper *RedisHelper
 
-func redisInitClient() {
-	redisMutex.Lock()
-	if redisClient == nil {
+type RedisHelper struct {
+	redisClient *redis.Client
+	redisDo     bool
+	redisMutex  sync.Mutex
+}
+
+func init() {
+	rhelper = &RedisHelper{
+		redisClient: nil,
+		redisDo:     true,
+	}
+}
+func GetRedisHelper() *RedisHelper {
+	return rhelper
+}
+
+func (rh *RedisHelper) redisInitClient() {
+	rh.redisMutex.Lock()
+	if rh.redisClient == nil {
 		addr, exist := os.LookupEnv("LOTUS_REDIS_ADDR")
 		if !exist {
-			redisDo = false
+			rh.redisDo = false
 		}
 		pw, exist := os.LookupEnv("LOTUS_REDIS_PW")
 		if !exist {
 			pw = ""
 		}
 
-		redisClient = redis.NewClient(&redis.Options{
+		rh.redisClient = redis.NewClient(&redis.Options{
 			Addr:     addr,
 			Password: pw,
 			DB:       0,
 		})
 	}
-	redisMutex.Unlock()
+	rh.redisMutex.Unlock()
 }
 
-func RedisSaveStartTime(cid string, starttime int64) {
-	redisInitClient()
-	if !redisDo {
+func (rh *RedisHelper) RedisSaveStartTime(cid string, starttime int64) {
+	rh.redisInitClient()
+	if !rh.redisDo {
 		return
 	}
 	hostname, _ := os.Hostname()
@@ -50,19 +64,19 @@ func RedisSaveStartTime(cid string, starttime int64) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	err = redisClient.Set(cid+"-"+hostname, json, 0).Err()
+	err = rh.redisClient.Set(cid+"-"+hostname, json, 0).Err()
 	if err != nil {
 		fmt.Println(err)
 	}
 }
-func RedisSaveEndTime(cid string, endtime int64) {
-	redisInitClient()
-	if !redisDo {
+func (rh *RedisHelper) RedisSaveEndTime(cid string, endtime int64) {
+	rh.redisInitClient()
+	if !rh.redisDo {
 		return
 	}
 	hostname, _ := os.Hostname()
 
-	val, err := redisClient.Get(cid + "-" + hostname).Result()
+	val, err := rh.redisClient.Get(cid + "-" + hostname).Result()
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -76,7 +90,7 @@ func RedisSaveEndTime(cid string, endtime int64) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	err = redisClient.Set(cid+"-"+hostname, json, 0).Err()
+	err = rh.redisClient.Set(cid+"-"+hostname, json, 0).Err()
 	if err != nil {
 		fmt.Println(err)
 	}
