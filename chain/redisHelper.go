@@ -76,14 +76,22 @@ func (rh *RedisHelper) RedisSaveEndTime(cid string, endtime int64) {
 	}
 	hostname, _ := os.Hostname()
 
+	var stored TimeLogEntry
+
 	val, err := rh.redisClient.Get(cid + "-" + hostname).Result()
 	if err != nil {
-		fmt.Printf("RedisSaveEndTime.redisClient.get: %v\n", err)
-	}
-	var stored TimeLogEntry
-	err = json2.Unmarshal([]byte(val), &stored)
-	if err != nil {
-		fmt.Printf("RedisSaveEndTime.json.Unmarshal %v gives %v\n", val, err)
+		if err != redis.Nil {
+			fmt.Printf("RedisSaveEndTime.redisClient.get: %v\n", err)
+		}
+		stored = TimeLogEntry{Client: hostname, Cid: cid, Start: 0, End: endtime}
+
+	} else {
+
+		err = json2.Unmarshal([]byte(val), &stored)
+		if err != nil {
+			fmt.Printf("RedisSaveEndTime.json.Unmarshal %v gives %v\n", val, err)
+		}
+
 	}
 
 	json, err := json2.Marshal(TimeLogEntry{Client: hostname, Cid: cid, Start: stored.Start, End: endtime})
