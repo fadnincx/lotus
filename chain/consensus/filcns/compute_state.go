@@ -278,8 +278,8 @@ func (t *TipSetExecutor) ApplyBlocks(ctx context.Context, sm *stmgr.StateManager
 		metrics.VMApplied.M(int64(atomic.LoadUint64(&vm.StatApplied))))
 
 	appliedTime := time.Now().UnixMicro()
-	for i := range cids {
-		go chain.GetRedisHelper().RedisSaveStartTime(cids[i], appliedTime)
+	for _, c := range cids {
+		go chain.GetRedisHelper().RedisSaveEndTime(c, appliedTime)
 	}
 
 	return st, rectroot, nil
