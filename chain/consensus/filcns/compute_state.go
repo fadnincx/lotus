@@ -209,6 +209,7 @@ func (t *TipSetExecutor) ApplyBlocks(ctx context.Context, sm *stmgr.StateManager
 				}
 			}
 			processedMsgs[m.Cid()] = struct{}{}
+			cids = append(cids, m.Cid().String())
 		}
 
 		params, err := actors.SerializeParams(&reward.AwardBlockRewardParams{
@@ -245,7 +246,6 @@ func (t *TipSetExecutor) ApplyBlocks(ctx context.Context, sm *stmgr.StateManager
 		if ret.ExitCode != 0 {
 			return cid.Undef, cid.Undef, xerrors.Errorf("reward application message failed (exit %d): %s", ret.ExitCode, ret.ActorErr)
 		}
-		cids = append(cids, rwMsg.Cid().String())
 	}
 
 	partDone()
