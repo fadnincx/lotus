@@ -186,15 +186,17 @@ func (a *MpoolAPI) MpoolPushMessage(ctx context.Context, msg *types.Message, spe
 		return nil, xerrors.Errorf("mpool push: not enough funds: %s < %s", b, msg.Value)
 	}
 
-	go chain.GetRedisHelper().RedisSaveStartTime(msg.Cid().String(), starttime)
-
 	// Sign and push the message
-	return a.MessageSigner.SignMessage(ctx, msg, func(smsg *types.SignedMessage) error {
+	signMsg, err := a.MessageSigner.SignMessage(ctx, msg, func(smsg *types.SignedMessage) error {
 		if _, err := a.MpoolModuleAPI.MpoolPush(ctx, smsg); err != nil {
 			return xerrors.Errorf("mpool push: failed to push message: %w", err)
 		}
 		return nil
 	})
+
+	go chain.GetRedisHelper().RedisSaveStartTime(signMsg.Cid().String(), starttime)
+
+	return signMsg, err
 }
 
 func (a *MpoolAPI) MpoolBatchPush(ctx context.Context, smsgs []*types.SignedMessage) ([]cid.Cid, error) {
