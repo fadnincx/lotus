@@ -14,6 +14,12 @@ type TimeLogEntry struct {
 	Start  int64  `json:"start"`
 	End    int64  `json:"end"`
 }
+type BlockLog struct {
+	Client   string `json:"client"`
+	Cid      string `json:"cid"`
+	MsgCount uint64 `json:"amount"`
+	Time     int64  `json:"time"`
+}
 
 var rhelper *RedisHelper
 
@@ -53,7 +59,21 @@ func (rh *RedisHelper) redisInitClient() {
 	}
 	rh.redisMutex.Unlock()
 }
-
+func (rh *RedisHelper) RedisSavePacket(cid string, msgCount uint64, time int64) {
+	rh.redisInitClient()
+	if !rh.redisDo {
+		return
+	}
+	hostname, _ := os.Hostname()
+	json, err := json2.Marshal(BlockLog{Client: hostname, Cid: cid, MsgCount: msgCount, Time: time})
+	if err != nil {
+		fmt.Printf("RedisSavePacket.json.Marshal: %v\n", err)
+	}
+	err = rh.redisClient.Set(cid+"-p-"+hostname, json, 0).Err()
+	if err != nil {
+		fmt.Printf("RedisSavePacket.redisClient.set: %v\n", err)
+	}
+}
 func (rh *RedisHelper) RedisSaveStartTime(cid string, starttime int64) {
 	rh.redisInitClient()
 	if !rh.redisDo {
