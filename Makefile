@@ -73,6 +73,9 @@ debug: build-devnets
 2k: GOFLAGS+=-tags=2k
 2k: build-devnets
 
+fil: GOFLAGS+=-tags=fil
+fil: build-devnets
+
 calibnet: GOFLAGS+=-tags=calibnet
 calibnet: build-devnets
 
