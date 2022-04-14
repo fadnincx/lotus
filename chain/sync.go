@@ -221,6 +221,7 @@ func (syncer *Syncer) InformNewHead(from peer.ID, fts *store.FullTipSet) bool {
 			log.Warnf("invalid block received: %s", err)
 			return false
 		}
+		go GetRedisHelper().RedisBlockApproved(b.Header.Cid().String(), time.Now().UnixMicro())
 	}
 
 	syncer.incoming.Pub(fts.TipSet().Blocks(), LocalIncoming)

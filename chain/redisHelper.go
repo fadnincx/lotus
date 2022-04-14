@@ -15,10 +15,11 @@ type TimeLogEntry struct {
 	End    int64  `json:"end"`
 }
 type BlockLog struct {
-	Client   string `json:"client"`
-	Cid      string `json:"cid"`
-	MsgCount uint64 `json:"amount"`
-	Time     int64  `json:"time"`
+	Client     string `json:"client"`
+	Cid        string `json:"cid"`
+	MsgCount   uint64 `json:"amount"`
+	FirstKnown int64  `json:"firstKnown"`
+	Accepted   int64  `json:"accepted"`
 }
 
 var rhelper *RedisHelper
@@ -59,21 +60,56 @@ func (rh *RedisHelper) redisInitClient() {
 	}
 	rh.redisMutex.Unlock()
 }
-func (rh *RedisHelper) RedisSavePacket(cid string, msgCount uint64, time int64) {
+func (rh *RedisHelper) RedisBlockFirstKnown(cid string, time int64) {
 	rh.redisInitClient()
 	if !rh.redisDo {
 		return
 	}
 	hostname, _ := os.Hostname()
-	json, err := json2.Marshal(BlockLog{Client: hostname, Cid: cid, MsgCount: msgCount, Time: time})
+	json, err := json2.Marshal(BlockLog{Client: hostname, Cid: cid, FirstKnown: time})
 	if err != nil {
-		fmt.Printf("RedisSavePacket.json.Marshal: %v\n", err)
+		fmt.Printf("RedisBlockFirstKnown.json.Marshal: %v\n", err)
 	}
-	err = rh.redisClient.Set(cid+"-p-"+hostname, json, 0).Err()
+	err = rh.redisClient.Set(cid+"-b-"+hostname, json, 0).Err()
 	if err != nil {
-		fmt.Printf("RedisSavePacket.redisClient.set: %v\n", err)
+		fmt.Printf("RedisBlockFirstKnown.redisClient.set: %v\n", err)
 	}
 }
+func (rh *RedisHelper) RedisBlockApproved(cid string, time int64) {
+	rh.redisInitClient()
+	if !rh.redisDo {
+		return
+	}
+	hostname, _ := os.Hostname()
+
+	var stored BlockLog
+
+	val, err := rh.redisClient.Get(cid + "-b-" + hostname).Result()
+	if err != nil {
+		if err != redis.Nil {
+			fmt.Printf("RedisBlockApproved.redisClient.get: %v\n", err)
+		}
+		stored = BlockLog{Client: hostname, Cid: cid, FirstKnown: 0, Accepted: time}
+
+	} else {
+
+		err = json2.Unmarshal([]byte(val), &stored)
+		if err != nil {
+			fmt.Printf("RedisBlockApproved.json.Unmarshal %v gives %v\n", val, err)
+		}
+
+	}
+
+	json, err := json2.Marshal(BlockLog{Client: hostname, Cid: cid, FirstKnown: stored.FirstKnown, Accepted: time})
+	if err != nil {
+		fmt.Printf("RedisBlockApproved.json.Marshal %v\n", err)
+	}
+	err = rh.redisClient.Set(cid+"-"+hostname, json, 0).Err()
+	if err != nil {
+		fmt.Printf("RedisBlockApproved.redisClient.set: %v\n", err)
+	}
+}
+
 func (rh *RedisHelper) RedisSaveStartTime(cid string, starttime int64) {
 	rh.redisInitClient()
 	if !rh.redisDo {
