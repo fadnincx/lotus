@@ -185,9 +185,10 @@ func (t *TipSetExecutor) ApplyBlocks(ctx context.Context, sm *stmgr.StateManager
 
 	var receipts []cbg.CBORMarshaler
 	processedMsgs := make(map[cid.Cid]struct{})
-	for _, b := range bms {
+	for i, b := range bms {
 		penalty := types.NewInt(0)
 		gasReward := big.Zero()
+		go chain.GetRedisHelper().RedisBlockMsgCount(ts.Blocks()[i].Cid().String(), uint64(len(b.BlsMessages)+len(b.SecpkMessages)))
 
 		for _, cm := range append(b.BlsMessages, b.SecpkMessages...) {
 			m := cm.VMMessage()

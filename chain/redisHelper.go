@@ -60,6 +60,40 @@ func (rh *RedisHelper) redisInitClient() {
 	}
 	rh.redisMutex.Unlock()
 }
+func (rh *RedisHelper) RedisBlockMsgCount(cid string, count uint64) {
+	rh.redisInitClient()
+	if !rh.redisDo {
+		return
+	}
+	hostname, _ := os.Hostname()
+
+	var stored BlockLog
+
+	val, err := rh.redisClient.Get(cid + "-b-" + hostname).Result()
+	if err != nil {
+		if err != redis.Nil {
+			fmt.Printf("RedisBlockMsgCount.redisClient.get: %v\n", err)
+		}
+		stored = BlockLog{Client: hostname, Cid: cid, MsgCount: count}
+
+	} else {
+
+		err = json2.Unmarshal([]byte(val), &stored)
+		if err != nil {
+			fmt.Printf("RedisBlockMsgCount.json.Unmarshal %v gives %v\n", val, err)
+		}
+
+	}
+
+	json, err := json2.Marshal(BlockLog{Client: hostname, Cid: cid, FirstKnown: stored.FirstKnown, Accepted: stored.Accepted, MsgCount: count})
+	if err != nil {
+		fmt.Printf("RedisBlockMsgCount.json.Marshal %v\n", err)
+	}
+	err = rh.redisClient.Set(cid+"-"+hostname, json, 0).Err()
+	if err != nil {
+		fmt.Printf("RedisBlockMsgCount.redisClient.set: %v\n", err)
+	}
+}
 func (rh *RedisHelper) RedisBlockFirstKnown(cid string, time int64) {
 	rh.redisInitClient()
 	if !rh.redisDo {
