@@ -60,7 +60,7 @@ func HandleIncomingBlocks(ctx context.Context, bsub *pubsub.Subscription, s *cha
 
 		src := msg.GetFrom()
 
-		go chain.GetRedisHelper().RedisBlockFirstKnown(blk.Header.Cid().String(), time.Now().UnixMicro())
+		go chain.GetRedisHelper().RedisBlockFirstKnown(blk.Header.Cid().String(), blk.BlsMessages, blk.SecpkMessages, time.Now().UnixMicro())
 
 		go func() {
 			ctx, cancel := context.WithTimeout(ctx, timeout)

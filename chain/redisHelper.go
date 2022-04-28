@@ -4,6 +4,7 @@ import (
 	json2 "encoding/json"
 	"fmt"
 	"github.com/go-redis/redis"
+	"github.com/ipfs/go-cid"
 	"os"
 	"sync"
 )
@@ -15,11 +16,12 @@ type TimeLogEntry struct {
 	End    int64  `json:"end"`
 }
 type BlockLog struct {
-	Client     string `json:"client"`
-	Cid        string `json:"cid"`
-	MsgCount   uint64 `json:"amount"`
-	FirstKnown int64  `json:"firstKnown"`
-	Accepted   int64  `json:"accepted"`
+	Client     string   `json:"client"`
+	Cid        string   `json:"cid"`
+	MsgCids    []string `json:msgcids`
+	MsgCount   uint64   `json:"amount"`
+	FirstKnown int64    `json:"firstKnown"`
+	Accepted   int64    `json:"accepted"`
 }
 
 var rhelper *RedisHelper
@@ -84,8 +86,11 @@ func (rh *RedisHelper) RedisBlockMsgCount(cid string, count uint64) {
 		}
 
 	}
+	stored.Client = hostname
+	stored.Cid = cid
+	stored.MsgCount = count
 
-	json, err := json2.Marshal(BlockLog{Client: hostname, Cid: cid, FirstKnown: stored.FirstKnown, Accepted: stored.Accepted, MsgCount: count})
+	json, err := json2.Marshal(stored)
 	if err != nil {
 		fmt.Printf("RedisBlockMsgCount.json.Marshal %v\n", err)
 	}
@@ -94,13 +99,20 @@ func (rh *RedisHelper) RedisBlockMsgCount(cid string, count uint64) {
 		fmt.Printf("RedisBlockMsgCount.redisClient.set: %v\n", err)
 	}
 }
-func (rh *RedisHelper) RedisBlockFirstKnown(cid string, time int64) {
+func (rh *RedisHelper) RedisBlockFirstKnown(cid string, BlsMessages []cid.Cid, SecpkMessages []cid.Cid, time int64) {
 	rh.redisInitClient()
 	if !rh.redisDo {
 		return
 	}
+	var msgcids []string
+	for _, b := range BlsMessages {
+		msgcids = append(msgcids, b.String())
+	}
+	for _, b := range SecpkMessages {
+		msgcids = append(msgcids, b.String())
+	}
 	hostname, _ := os.Hostname()
-	json, err := json2.Marshal(BlockLog{Client: hostname, Cid: cid, FirstKnown: time})
+	json, err := json2.Marshal(BlockLog{Client: hostname, Cid: cid, MsgCids: msgcids, MsgCount: uint64(len(msgcids)), FirstKnown: time})
 	if err != nil {
 		fmt.Printf("RedisBlockFirstKnown.json.Marshal: %v\n", err)
 	}
@@ -133,8 +145,10 @@ func (rh *RedisHelper) RedisBlockApproved(cid string, time int64) {
 		}
 
 	}
-
-	json, err := json2.Marshal(BlockLog{Client: hostname, Cid: cid, FirstKnown: stored.FirstKnown, Accepted: time})
+	stored.Client = hostname
+	stored.Cid = cid
+	stored.Accepted = time
+	json, err := json2.Marshal(stored)
 	if err != nil {
 		fmt.Printf("RedisBlockApproved.json.Marshal %v\n", err)
 	}
