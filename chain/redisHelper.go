@@ -18,7 +18,7 @@ type TimeLogEntry struct {
 type BlockLog struct {
 	Client     string   `json:"client"`
 	Cid        string   `json:"cid"`
-	MsgCids    []string `json:msgcids`
+	MsgCids    []string `json:"msgcids"`
 	MsgCount   uint64   `json:"amount"`
 	FirstKnown int64    `json:"firstKnown"`
 	Accepted   int64    `json:"accepted"`
