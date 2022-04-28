@@ -104,7 +104,7 @@ func (rh *RedisHelper) RedisBlockFirstKnown(cid string, BlsMessages []cid.Cid, S
 	if !rh.redisDo {
 		return
 	}
-	var msgcids []string
+	var msgcids = make([]string, 0)
 	for _, b := range BlsMessages {
 		msgcids = append(msgcids, b.String())
 	}
