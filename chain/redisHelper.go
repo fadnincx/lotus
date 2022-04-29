@@ -16,12 +16,14 @@ type TimeLogEntry struct {
 	End    int64  `json:"end"`
 }
 type BlockLog struct {
-	Client     string   `json:"client"`
-	Cid        string   `json:"cid"`
-	MsgCids    []string `json:"msgcids"`
-	MsgCount   uint64   `json:"amount"`
-	FirstKnown int64    `json:"firstKnown"`
-	Accepted   int64    `json:"accepted"`
+	Client      string   `json:"client"`
+	Cid         string   `json:"cid"`
+	MsgCids     []string `json:"msgcids"`
+	MsgCount    uint64   `json:"amount"`
+	FirstKnown  int64    `json:"firstKnown"`
+	Accepted    int64    `json:"accepted"`
+	TipsetEpoch string   `json:"tipsetEpoch"`
+	Miner       string   `json:"miner"`
 }
 
 var rhelper *RedisHelper
@@ -155,6 +157,78 @@ func (rh *RedisHelper) RedisBlockApproved(cid string, time int64) {
 	err = rh.redisClient.Set(cid+"-"+hostname, json, 0).Err()
 	if err != nil {
 		fmt.Printf("RedisBlockApproved.redisClient.set: %v\n", err)
+	}
+}
+func (rh *RedisHelper) RedisBlockTipset(cid string, tipsetEpoch string) {
+	rh.redisInitClient()
+	if !rh.redisDo {
+		return
+	}
+	hostname, _ := os.Hostname()
+
+	var stored BlockLog
+
+	val, err := rh.redisClient.Get(cid + "-b-" + hostname).Result()
+	if err != nil {
+		if err != redis.Nil {
+			fmt.Printf("RedisBlockTipset.redisClient.get: %v\n", err)
+		}
+		stored = BlockLog{Client: hostname, Cid: cid, FirstKnown: 0, TipsetEpoch: tipsetEpoch}
+
+	} else {
+
+		err = json2.Unmarshal([]byte(val), &stored)
+		if err != nil {
+			fmt.Printf("RedisBlockTipset.json.Unmarshal %v gives %v\n", val, err)
+		}
+
+	}
+	stored.Client = hostname
+	stored.Cid = cid
+	stored.TipsetEpoch = tipsetEpoch
+	json, err := json2.Marshal(stored)
+	if err != nil {
+		fmt.Printf("RedisBlockTipset.json.Marshal %v\n", err)
+	}
+	err = rh.redisClient.Set(cid+"-"+hostname, json, 0).Err()
+	if err != nil {
+		fmt.Printf("RedisBlockTipset.redisClient.set: %v\n", err)
+	}
+}
+func (rh *RedisHelper) RedisSaveMiner(cid string, miner string) {
+	rh.redisInitClient()
+	if !rh.redisDo {
+		return
+	}
+	hostname, _ := os.Hostname()
+
+	var stored BlockLog
+
+	val, err := rh.redisClient.Get(cid + "-b-" + hostname).Result()
+	if err != nil {
+		if err != redis.Nil {
+			fmt.Printf("RedisBlockTipset.redisClient.get: %v\n", err)
+		}
+		stored = BlockLog{Client: hostname, Cid: cid, FirstKnown: 0, Miner: miner}
+
+	} else {
+
+		err = json2.Unmarshal([]byte(val), &stored)
+		if err != nil {
+			fmt.Printf("RedisBlockTipset.json.Unmarshal %v gives %v\n", val, err)
+		}
+
+	}
+	stored.Client = hostname
+	stored.Cid = cid
+	stored.Miner = miner
+	json, err := json2.Marshal(stored)
+	if err != nil {
+		fmt.Printf("RedisBlockTipset.json.Marshal %v\n", err)
+	}
+	err = rh.redisClient.Set(cid+"-"+hostname, json, 0).Err()
+	if err != nil {
+		fmt.Printf("RedisBlockTipset.redisClient.set: %v\n", err)
 	}
 }
 

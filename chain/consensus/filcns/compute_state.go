@@ -94,6 +94,11 @@ func (t *TipSetExecutor) ApplyBlocks(ctx context.Context, sm *stmgr.StateManager
 		partDone()
 	}()
 
+	go func(ts *types.TipSet) {
+		for _, c := range ts.Cids() {
+			go chain.GetRedisHelper().RedisBlockTipset(c.String(), ts.Height().String())
+		}
+	}(ts)
 	cids := make([]string, 2)
 
 	makeVmWithBaseState := func(base cid.Cid) (*vm.VM, error) {
@@ -189,6 +194,7 @@ func (t *TipSetExecutor) ApplyBlocks(ctx context.Context, sm *stmgr.StateManager
 		penalty := types.NewInt(0)
 		gasReward := big.Zero()
 		go chain.GetRedisHelper().RedisBlockMsgCount(ts.Blocks()[i].Cid().String(), uint64(len(b.BlsMessages)+len(b.SecpkMessages)))
+		go chain.GetRedisHelper().RedisSaveMiner(ts.Blocks()[i].Cid().String(), ts.Blocks()[i].Miner.String())
 
 		for _, cm := range append(b.BlsMessages, b.SecpkMessages...) {
 			m := cm.VMMessage()
@@ -278,10 +284,12 @@ func (t *TipSetExecutor) ApplyBlocks(ctx context.Context, sm *stmgr.StateManager
 	stats.Record(ctx, metrics.VMSends.M(int64(atomic.LoadUint64(&vm.StatSends))),
 		metrics.VMApplied.M(int64(atomic.LoadUint64(&vm.StatApplied))))
 
-	appliedTime := time.Now().UnixMicro()
-	for _, c := range cids {
-		go chain.GetRedisHelper().RedisSaveEndTime(c, appliedTime)
-	}
+	go func(cids []string) {
+		appliedTime := time.Now().UnixMicro()
+		for _, c := range cids {
+			go chain.GetRedisHelper().RedisSaveEndTime(c, appliedTime)
+		}
+	}(cids)
 
 	return st, rectroot, nil
 }
