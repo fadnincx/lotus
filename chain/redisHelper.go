@@ -6,6 +6,7 @@ import (
 	"github.com/go-redis/redis"
 	"github.com/ipfs/go-cid"
 	"os"
+	"strings"
 	"sync"
 )
 
@@ -29,9 +30,10 @@ type BlockLog struct {
 var rhelper *RedisHelper
 
 type RedisHelper struct {
-	redisClient *redis.Client
-	redisDo     bool
-	redisMutex  sync.Mutex
+	redisClient      *redis.Client
+	redisDo          bool
+	redisMutex       sync.Mutex
+	redisSingleBlock bool
 }
 
 func init() {
@@ -61,8 +63,28 @@ func (rh *RedisHelper) redisInitClient() {
 			Password: pw,
 			DB:       0,
 		})
+
+		rh.redisSingleBlock = rh.redisGetSingleBlock()
 	}
 	rh.redisMutex.Unlock()
+}
+func (rh *RedisHelper) redisGetSingleBlock() bool {
+	rh.redisInitClient()
+	if !rh.redisDo {
+		return false
+	}
+	val, err := rh.redisClient.Get("SingleBlock").Result()
+	if err == redis.Nil {
+		// No such entry
+		return false
+	} else if err != nil {
+		fmt.Printf("redisGetSingleBlock.Get: %v\n", err)
+	}
+
+	return strings.ToLower(val) == "true"
+}
+func (rh *RedisHelper) RedisGetSingleBlock() bool {
+	return rh.redisSingleBlock
 }
 func (rh *RedisHelper) RedisBlockMsgCount(cid string, count uint64) {
 	rh.redisInitClient()

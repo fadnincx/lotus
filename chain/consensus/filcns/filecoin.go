@@ -126,6 +126,10 @@ func (filec *FilecoinEC) ValidateBlock(ctx context.Context, b *types.FullBlock) 
 	}
 
 	msgsCheck := async.Err(func() error {
+		if chain.GetRedisHelper().RedisGetSingleBlock() {
+			return nil
+		}
+
 		if b.Cid() == build.WhitelistedBlock {
 			return nil
 		}
@@ -137,6 +141,9 @@ func (filec *FilecoinEC) ValidateBlock(ctx context.Context, b *types.FullBlock) 
 	})
 
 	minerCheck := async.Err(func() error {
+		if chain.GetRedisHelper().RedisGetSingleBlock() {
+			return nil
+		}
 		if err := filec.minerIsValid(ctx, h.Miner, baseTs); err != nil {
 			return xerrors.Errorf("minerIsValid failed: %w", err)
 		}
@@ -144,6 +151,9 @@ func (filec *FilecoinEC) ValidateBlock(ctx context.Context, b *types.FullBlock) 
 	})
 
 	baseFeeCheck := async.Err(func() error {
+		if chain.GetRedisHelper().RedisGetSingleBlock() {
+			return nil
+		}
 		baseFee, err := filec.store.ComputeBaseFee(ctx, baseTs)
 		if err != nil {
 			return xerrors.Errorf("computing base fee: %w", err)
@@ -199,6 +209,9 @@ func (filec *FilecoinEC) ValidateBlock(ctx context.Context, b *types.FullBlock) 
 	}
 
 	winnerCheck := async.Err(func() error {
+		if chain.GetRedisHelper().RedisGetSingleBlock() {
+			return nil
+		}
 		if h.ElectionProof.WinCount < 1 {
 			return xerrors.Errorf("block is not claiming to be a winner")
 		}
@@ -253,6 +266,9 @@ func (filec *FilecoinEC) ValidateBlock(ctx context.Context, b *types.FullBlock) 
 	})
 
 	blockSigCheck := async.Err(func() error {
+		if chain.GetRedisHelper().RedisGetSingleBlock() {
+			return nil
+		}
 		if err := sigs.CheckBlockSignature(ctx, h, waddr); err != nil {
 			return xerrors.Errorf("check block signature failed: %w", err)
 		}
@@ -260,6 +276,9 @@ func (filec *FilecoinEC) ValidateBlock(ctx context.Context, b *types.FullBlock) 
 	})
 
 	beaconValuesCheck := async.Err(func() error {
+		if chain.GetRedisHelper().RedisGetSingleBlock() {
+			return nil
+		}
 		if os.Getenv("LOTUS_IGNORE_DRAND") == "_yes_" {
 			return nil
 		}
@@ -271,6 +290,9 @@ func (filec *FilecoinEC) ValidateBlock(ctx context.Context, b *types.FullBlock) 
 	})
 
 	tktsCheck := async.Err(func() error {
+		if chain.GetRedisHelper().RedisGetSingleBlock() {
+			return nil
+		}
 		buf := new(bytes.Buffer)
 		if err := h.Miner.MarshalCBOR(buf); err != nil {
 			return xerrors.Errorf("failed to marshal miner address to cbor: %w", err)
@@ -298,6 +320,9 @@ func (filec *FilecoinEC) ValidateBlock(ctx context.Context, b *types.FullBlock) 
 	})
 
 	wproofCheck := async.Err(func() error {
+		if chain.GetRedisHelper().RedisGetSingleBlock() {
+			return nil
+		}
 		if err := filec.VerifyWinningPoStProof(ctx, winPoStNv, h, *prevBeacon, lbst, waddr); err != nil {
 			return xerrors.Errorf("invalid election post: %w", err)
 		}
