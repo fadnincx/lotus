@@ -515,7 +515,7 @@ func (m *Miner) mineOne(ctx context.Context, base *MiningBase) (minedBlock *type
 		return nil, err
 	}
 
-	if winner == nil && !chain.GetRedisHelper().RedisGetSingleBlock() {
+	if winner == nil {
 		return nil, nil
 	}
 
@@ -550,7 +550,7 @@ func (m *Miner) mineOne(ctx context.Context, base *MiningBase) (minedBlock *type
 	}
 
 	postProof, err := m.epp.ComputeProof(ctx, mbi.Sectors, prand, round, nv)
-	if err != nil && !chain.GetRedisHelper().RedisGetSingleBlock() {
+	if err != nil {
 		err = xerrors.Errorf("failed to compute winning post proof: %w", err)
 		return nil, err
 	}
@@ -559,7 +559,7 @@ func (m *Miner) mineOne(ctx context.Context, base *MiningBase) (minedBlock *type
 
 	// get pending messages early,
 	msgs, err := m.api.MpoolSelect(context.TODO(), base.TipSet.Key(), ticket.Quality())
-	if err != nil && !chain.GetRedisHelper().RedisGetSingleBlock() {
+	if err != nil {
 		err = xerrors.Errorf("failed to select messages for block: %w", err)
 		return nil, err
 	}
@@ -568,7 +568,7 @@ func (m *Miner) mineOne(ctx context.Context, base *MiningBase) (minedBlock *type
 
 	// TODO: winning post proof
 	minedBlock, err = m.createBlock(base, m.address, ticket, winner, bvals, postProof, msgs)
-	if err != nil && !chain.GetRedisHelper().RedisGetSingleBlock() {
+	if err != nil {
 		err = xerrors.Errorf("failed to create block: %w", err)
 		return nil, err
 	}
