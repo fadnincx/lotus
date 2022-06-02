@@ -520,6 +520,10 @@ func (m *Miner) mineOne(ctx context.Context, base *MiningBase) (minedBlock *type
 	}
 
 	if chain.GetRedisHelper().RedisGetSingleBlock() {
+		hostname, _ := os.Hostname()
+		if hostname != "lotus-node-0" {
+			return nil, nil
+		}
 		winner.WinCount = 1
 	}
 
