@@ -1,4 +1,4 @@
-package chain
+package fil_benchmark
 
 import (
 	json2 "encoding/json"

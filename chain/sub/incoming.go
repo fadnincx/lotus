@@ -3,6 +3,7 @@ package sub
 import (
 	"context"
 	"fmt"
+	"github.com/filecoin-project/lotus/fil-benchmark"
 	"time"
 
 	address "github.com/filecoin-project/go-address"
@@ -60,7 +61,7 @@ func HandleIncomingBlocks(ctx context.Context, bsub *pubsub.Subscription, s *cha
 
 		src := msg.GetFrom()
 
-		go chain.GetRedisHelper().RedisBlockFirstKnown(blk.Header.Cid().String(), blk.BlsMessages, blk.SecpkMessages, time.Now().UnixMicro())
+		go fil_benchmark.GetRedisHelper().RedisBlockFirstKnown(blk.Header.Cid().String(), blk.BlsMessages, blk.SecpkMessages, time.Now().UnixMicro())
 
 		go func() {
 			ctx, cancel := context.WithTimeout(ctx, timeout)

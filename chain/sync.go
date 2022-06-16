@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/filecoin-project/lotus/fil-benchmark"
 	"sort"
 	"sync"
 	"time"
@@ -221,7 +222,7 @@ func (syncer *Syncer) InformNewHead(from peer.ID, fts *store.FullTipSet) bool {
 			log.Warnf("invalid block received: %s", err)
 			return false
 		}
-		go GetRedisHelper().RedisBlockApproved(b.Header.Cid().String(), time.Now().UnixMicro())
+		go fil_benchmark.GetRedisHelper().RedisBlockApproved(b.Header.Cid().String(), time.Now().UnixMicro())
 	}
 
 	syncer.incoming.Pub(fts.TipSet().Blocks(), LocalIncoming)

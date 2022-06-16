@@ -2,7 +2,7 @@ package filcns
 
 import (
 	"context"
-	"github.com/filecoin-project/lotus/chain"
+	"github.com/filecoin-project/lotus/fil-benchmark"
 	"sync/atomic"
 	"time"
 
@@ -96,7 +96,7 @@ func (t *TipSetExecutor) ApplyBlocks(ctx context.Context, sm *stmgr.StateManager
 
 	go func(ts *types.TipSet) {
 		for _, c := range ts.Cids() {
-			go chain.GetRedisHelper().RedisBlockTipset(c.String(), ts.Height().String())
+			go fil_benchmark.GetRedisHelper().RedisBlockTipset(c.String(), ts.Height().String())
 		}
 	}(ts)
 	cids := make([]string, 2)
@@ -193,8 +193,8 @@ func (t *TipSetExecutor) ApplyBlocks(ctx context.Context, sm *stmgr.StateManager
 	for i, b := range bms {
 		penalty := types.NewInt(0)
 		gasReward := big.Zero()
-		go chain.GetRedisHelper().RedisBlockMsgCount(ts.Blocks()[i].Cid().String(), uint64(len(b.BlsMessages)+len(b.SecpkMessages)))
-		go chain.GetRedisHelper().RedisSaveMiner(ts.Blocks()[i].Cid().String(), ts.Blocks()[i].Miner.String())
+		go fil_benchmark.GetRedisHelper().RedisBlockMsgCount(ts.Blocks()[i].Cid().String(), uint64(len(b.BlsMessages)+len(b.SecpkMessages)))
+		go fil_benchmark.GetRedisHelper().RedisSaveMiner(ts.Blocks()[i].Cid().String(), ts.Blocks()[i].Miner.String())
 
 		for _, cm := range append(b.BlsMessages, b.SecpkMessages...) {
 			m := cm.VMMessage()
@@ -287,7 +287,7 @@ func (t *TipSetExecutor) ApplyBlocks(ctx context.Context, sm *stmgr.StateManager
 	go func(cids []string) {
 		appliedTime := time.Now().UnixMicro()
 		for _, c := range cids {
-			go chain.GetRedisHelper().RedisSaveEndTime(c, appliedTime)
+			go fil_benchmark.GetRedisHelper().RedisSaveEndTime(c, appliedTime)
 		}
 	}(cids)
 

@@ -6,7 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"fmt"
-	"github.com/filecoin-project/lotus/chain"
+	"github.com/filecoin-project/lotus/fil-benchmark"
 	"os"
 	"sync"
 	"time"
@@ -519,7 +519,7 @@ func (m *Miner) mineOne(ctx context.Context, base *MiningBase) (minedBlock *type
 		return nil, nil
 	}
 
-	if chain.GetRedisHelper().RedisGetSingleBlock() {
+	if fil_benchmark.GetRedisHelper().RedisGetSingleBlock() {
 		hostname, _ := os.Hostname()
 		if hostname != "lotus-node-0" {
 			return nil, nil

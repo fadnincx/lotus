@@ -3,7 +3,7 @@ package full
 import (
 	"context"
 	"encoding/json"
-	"github.com/filecoin-project/lotus/chain"
+	"github.com/filecoin-project/lotus/fil-benchmark"
 	"time"
 
 	"github.com/filecoin-project/go-address"
@@ -194,7 +194,7 @@ func (a *MpoolAPI) MpoolPushMessage(ctx context.Context, msg *types.Message, spe
 		return nil
 	})
 
-	go chain.GetRedisHelper().RedisSaveStartTime(signMsg.Cid().String(), starttime)
+	go fil_benchmark.GetRedisHelper().RedisSaveStartTime(signMsg.Cid().String(), starttime)
 
 	return signMsg, err
 }
